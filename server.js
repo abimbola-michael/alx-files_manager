@@ -8,4 +8,4 @@ const app = express();
 
 indexRoute(app);
 
-app.listen(PORT, () => console.log(`Server Listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
