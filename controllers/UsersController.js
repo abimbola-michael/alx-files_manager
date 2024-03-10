@@ -16,12 +16,17 @@ class UsersController {
     if (await dbClient.client.db().collection('users').findOne({ email: req.body.email })) {
       return res.status(400).json({ error: 'Already exist' });
     }
-    const user = await dbClient
-      .client
-      .db()
-      .collection('users')
-      .insertOne({ email: req.body.email, password: sha1(req.body.password) });
-    return res.status(201).json({ email: user.ops[0].email, id: user.insertedId });
+    try {
+      const user = await dbClient
+        .client
+        .db()
+        .collection('users')
+        .insertOne({ email: req.body.email, password: sha1(req.body.password) });
+      return res.status(201).json({ email: user.ops[0].email, id: user.insertedId });
+    } catch (err) {
+      console.error('Create User Error', err);
+      return res.status(500).json({ error: 'Server error' });
+    }
   }
 }
 
