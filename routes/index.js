@@ -3,6 +3,7 @@
 import AppController from '../controllers/AppController';
 import UsersController from '../controllers/UsersController';
 import AuthController from '../controllers/AuthController';
+import FilesController from '../controllers/FilesController';
 import { authConnect, xAuthConnect } from '../middleware/authentication';
 
 function indexRoute(app) {
@@ -12,6 +13,7 @@ function indexRoute(app) {
   app.get('/users/me', xAuthConnect, UsersController.getMe);
   app.get('/connect', authConnect, AuthController.getConnect);
   app.get('/disconnect', xAuthConnect, AuthController.getDisconnect);
+  app.post('/files', xAuthConnect, FilesController.postUpload);
 }
 
 export default indexRoute;

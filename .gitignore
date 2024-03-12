@@ -1,1 +1,5 @@
 node_modules
+
+# hidden files 
+*.swp
+*.un~
