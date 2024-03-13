@@ -42,7 +42,7 @@ export default class FileController {
       }
     }
 
-    parentId = parentId || 0;
+    parentId = parentId ? ObjectId(parentId) : 0;
     isPublic = isPublic || false;
     if (type === 'folder') {
       let folder = await dbClient.client.db().collection('files').insertOne({
@@ -63,5 +63,62 @@ export default class FileController {
     return res.status(201).json({
       userId: user._id, name, isPublic, id: fileInserted.insertedId.toString(), parentId, type,
     });
+  }
+
+  /**
+   * Get a file or folder by id
+   * @static
+   * @async
+   * @function
+   * @params {request} req - express request object
+   * @params {response} res - express response object
+   */
+  static async getShow(req, res) {
+    const { user } = req;
+    const { id } = req.params;
+
+    const file = await dbClient.client.db().collection('files').findOne({ userId: user._id, _id: ObjectId(id) });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    const {
+      _id, userId, name, type, isPublic, parentId,
+    } = file;
+    return res.status(200).json({
+      id: _id.toString(), userId, name, type, isPublic, parentId,
+    });
+  }
+
+  /**
+   * Get files for a paticular user based on a parentId
+   * @static
+   * @params
+   * @function - get files for a particular user based on parentId
+   * @params {request} req - express request object
+   * @params {response} res - express response object
+   */
+  static async getIndex(req, res) {
+    const { user } = req;
+
+    const { page = 0 } = req.query;
+    let { parentId = 0 } = req.query;
+    parentId = parentId ? ObjectId(parentId) : parentId;
+    const pageLimit = 20;
+    let filter = {};
+    if (parentId) {
+      filter = { parentId, userId: user._id };
+    } else {
+      filter = { userId: user._id };
+    }
+    const files = await dbClient.client.db().collection('files').aggregate(
+      [
+        { $match: filter },
+        { $addFields: { id: '$_id' } },
+        { $project: { _id: 0 } },
+        { $skip: page * pageLimit },
+        { $limit: pageLimit },
+      ],
+    ).toArray();
+    return res.status(200).json(files);
   }
 }
