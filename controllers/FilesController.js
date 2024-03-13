@@ -121,4 +121,52 @@ export default class FileController {
     ).toArray();
     return res.status(200).json(files);
   }
+
+  /**
+   * @static
+   * @async
+   * @function - should set isPublic to true on the file document based on the ID
+   * @params {request} req - express request object
+   * @params {response} res - express response object
+   * @return {response} - express response object
+   */
+  static async putPublish(req, res) {
+    const { user } = req;
+    const { id } = req.params;
+
+    const file = await dbClient.client.db().collection('files').findOne({ userId: user._id, _id: ObjectId(id) });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    await dbClient.client.db().collection('files').updateOne({
+      userId: user._id, _id: ObjectId(id),
+    }, [{ $set: { isPublic: true } }]);
+
+    delete file._id;
+    return res.status(200).json({ ...file, id, isPublic: true });
+  }
+
+  /**
+   * @static
+   * @async
+   * @function - should set isPublic to false on the file document based on the ID
+   * @params {request} req - express request object
+   * @params {response} res - express response object
+   * @return {response} - express response object
+   */
+  static async putUnPublish(req, res) {
+    const { user } = req;
+    const { id } = req.params;
+
+    const file = await dbClient.client.db().collection('files').findOne({ userId: user._id, _id: ObjectId(id) });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    await dbClient.client.db().collection('files').updateOne({
+      userId: user._id, _id: ObjectId(id),
+    }, [{ $set: { isPublic: false } }]);
+    delete file._id;
+    return res.status(200).json({ ...file, id, isPublic: false });
+  }
 }

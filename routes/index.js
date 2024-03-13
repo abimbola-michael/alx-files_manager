@@ -16,6 +16,8 @@ function indexRoute(app) {
   app.post('/files', xAuthConnect, FilesController.postUpload);
   app.get('/files/:id', xAuthConnect, FilesController.getShow);
   app.get('/files', xAuthConnect, FilesController.getIndex);
+  app.put('/files/:id/publish', xAuthConnect, FilesController.putPublish);
+  app.put('/files/:id/unPublish', xAuthConnect, FilesController.putUnPublish);
 }
 
 export default indexRoute;
