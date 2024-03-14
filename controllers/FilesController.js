@@ -189,6 +189,8 @@ export default class FileController {
   static async getFile(req, res) {
     const { user } = req;
     const { id } = req.params;
+    const sizes = [250, 500, 100];
+    const { size } = req.query;
 
     const file = await dbClient.client.db().collection('files').findOne({ _id: ObjectId(id) });
     if (!file || (!file.isPublic && (user && !(user._id.toString() === file.userId.toString())))) {
@@ -198,7 +200,14 @@ export default class FileController {
     if (file.type === 'folder') {
       return res.status(400).json({ error: "A folder doesn't have content" });
     }
+
+    if (size && sizes.includes(size)) {
+      file.localPath = `{file.localPath}_${size}`;
+    }
     const localPath = await realPath(file.localPath);
+    if (!fs.existsSync(localPath)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
     res.setHeader('Content-Type', mime.lookup(file.name));
     return res.status(200).sendFile(localPath);
   }
