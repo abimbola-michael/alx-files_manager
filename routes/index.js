@@ -5,7 +5,7 @@ import AppController from '../controllers/AppController';
 import UsersController from '../controllers/UsersController';
 import AuthController from '../controllers/AuthController';
 import FilesController from '../controllers/FilesController';
-import { authConnect, xAuthConnect } from '../middleware/authentication';
+import { authConnect, xAuthConnect, xUserGet } from '../middleware/authentication';
 
 const router = Router();
 // function indexRoute(app) {
@@ -32,6 +32,7 @@ router.get('/files/:id', xAuthConnect, FilesController.getShow);
 router.get('/files', xAuthConnect, FilesController.getIndex);
 router.put('/files/:id/publish', xAuthConnect, FilesController.putPublish);
 router.put('/files/:id/unPublish', xAuthConnect, FilesController.putUnPublish);
+router.get('/files/:id/data', xUserGet, FilesController.getFile);
 
 // export default indexRoute;
 export default router;

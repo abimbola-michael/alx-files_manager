@@ -35,3 +35,20 @@ export async function xAuthConnect(req, res, next) {
   req.tokenKey = tokenKey;
   return next();
 }
+
+/**
+ * get a user with api token
+ * @params {request} req - express request object
+ * @params {response} res - express response object
+ * @params {nextFunction} next - express response object
+ */
+export async function xUserGet(req, res, next) {
+  const tokenAndUser = await getUserFromToken(req);
+
+  if (tokenAndUser) {
+    const [user, tokenKey] = tokenAndUser;
+    req.user = user;
+    req.tokenKey = tokenKey;
+  }
+  return next();
+}

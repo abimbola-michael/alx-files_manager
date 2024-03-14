@@ -1,11 +1,15 @@
 #!/usr/bin/node
 
 import { ObjectId } from 'mongodb';
+import mime from 'mime-types';
+import fs from 'fs';
+import utils from 'util';
 import dbClient from '../utils/db';
 import wDataToFile from '../utils/files';
 import mime from 'mime-types';
 
 const FileType = ['folder', 'image', 'file'];
+const realPath = utils.promisify(fs.realpath).bind(fs);
 
 /**
  * Defines controller for files endpoint
@@ -144,6 +148,7 @@ export default class FileController {
     }, [{ $set: { isPublic: true } }]);
 
     delete file._id;
+    delete file.localPath;
     return res.status(200).json({ ...file, id, isPublic: true });
   }
 
@@ -168,6 +173,7 @@ export default class FileController {
       userId: user._id, _id: ObjectId(id),
     }, [{ $set: { isPublic: false } }]);
     delete file._id;
+    delete file.localPath;
     return res.status(200).json({ ...file, id, isPublic: false });
   }
 
@@ -180,16 +186,19 @@ export default class FileController {
    * @return - express response object
    */
   static async getFile(req, res) {
+    const { user } = req;
     const { id } = req.params;
 
-    const file = await dbClient.client.db().collection('files').findOne({_id: ObjectId(id), isPublic: true });
-    if (!file) {
+    const file = await dbClient.client.db().collection('files').findOne({ _id: ObjectId(id) });
+    if (!file || (!file.isPublic && (user && !(user._id.toString() === file.userId.toString())))) {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    if ( file.type === 'folder' ) {
+    if (file.type === 'folder') {
       return res.status(400).json({ error: "A folder doesn't have content" });
     }
-
+    const localPath = await realPath(file.localPath);
+    res.setHeader('Content-Type', mime.lookup(file.name));
+    return res.status(200).sendFile(localPath);
   }
 }
