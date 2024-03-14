@@ -3,6 +3,7 @@
 import { ObjectId } from 'mongodb';
 import dbClient from '../utils/db';
 import wDataToFile from '../utils/files';
+import mime from 'mime-types';
 
 const FileType = ['folder', 'image', 'file'];
 
@@ -168,5 +169,27 @@ export default class FileController {
     }, [{ $set: { isPublic: false } }]);
     delete file._id;
     return res.status(200).json({ ...file, id, isPublic: false });
+  }
+
+  /**
+   * @static
+   * @async
+   * @function - should return the content of the file document based on the ID
+   * @params {request} req - express request object
+   * @params {response} res - express response object
+   * @return - express response object
+   */
+  static async getFile(req, res) {
+    const { id } = req.params;
+
+    const file = await dbClient.client.db().collection('files').findOne({_id: ObjectId(id), isPublic: true });
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    if ( file.type === 'folder' ) {
+      return res.status(400).json({ error: "A folder doesn't have content" });
+    }
+
   }
 }
