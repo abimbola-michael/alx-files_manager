@@ -1,12 +1,12 @@
 #!/usr/bin/node
 
 import { ObjectId } from 'mongodb';
-import mime from 'mime-types';
 import fs from 'fs';
 import utils from 'util';
+import mime from 'mime-types';
 import dbClient from '../utils/db';
 import wDataToFile from '../utils/files';
-import mime from 'mime-types';
+import addJobToQueue from '../utils/imageJobs';
 
 const FileType = ['folder', 'image', 'file'];
 const realPath = utils.promisify(fs.realpath).bind(fs);
@@ -65,6 +65,7 @@ export default class FileController {
     };
 
     const fileInserted = await dbClient.client.db().collection('files').insertOne(newFile);
+    addJobToQueue({ userId: user._id.toString(), fileId: fileInserted.insertedId.toString() });
     return res.status(201).json({
       userId: user._id, name, isPublic, id: fileInserted.insertedId.toString(), parentId, type,
     });
