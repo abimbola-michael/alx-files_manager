@@ -20,7 +20,6 @@ export async function getUserBasicAuth(req) {
   emailPassword = emailPassword.split(':');
   const email = emailPassword[0];
   const password = sha1(emailPassword[1]);
-
   if (!email || !password) {
     return null;
   }

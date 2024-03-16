@@ -200,9 +200,8 @@ export default class FileController {
     if (file.type === 'folder') {
       return res.status(400).json({ error: "A folder doesn't have content" });
     }
-
-    if (size && sizes.includes(size)) {
-      file.localPath = `{file.localPath}_${size}`;
+    if (size && sizes.includes(Number(size))) {
+      file.localPath = `${file.localPath}_${size}`;
     }
     const localPath = await realPath(file.localPath);
     if (!fs.existsSync(localPath)) {
