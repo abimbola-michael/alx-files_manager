@@ -34,4 +34,13 @@ module.exports = {
       excludedFiles: 'babel.config.js',
     },
   ],
+  'jest/expect-expect': [
+    'error',
+    {
+      assertFunctionNames: ['expect', 'assert'],
+    },
+  ],
+  'jest/no-hooks': [
+    'error', {"allow": ["afterEach", "beforeEach"]}
+  ]
 };
