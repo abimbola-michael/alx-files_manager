@@ -1,16 +1,13 @@
 #!/usr/bin/node
 
 import chai from 'chai';
-import { DBClient } from '../../utils/db';
+import dbClient from '../../utils/db';
 const expect = chai.expect;
 
-process.env.DB_DATABASE = "test_files_manager"
 
 describe('DBClient', () => {
-  let dbClient;
   before(function () {
     this.timeout(10000);
-    dbClient = new DBClient();
   })
 
   beforeEach(async () => {
