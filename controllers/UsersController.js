@@ -1,6 +1,9 @@
 #!/usr/bin/node
 import sha1 from 'sha1';
 import dbClient from '../utils/db';
+import Queue from 'bull';
+
+const userQueue = new Queue('userQueue');
 
 class UsersController {
   /**
@@ -27,6 +30,7 @@ class UsersController {
         .db()
         .collection('users')
         .insertOne({ email: req.body.email, password: sha1(req.body.password) });
+      userQueue.add({ userId: user.insertedId.toString() })
       return res.status(201).json({ email: user.ops[0].email, id: user.insertedId });
     } catch (err) {
       console.error('Create User Error', err);

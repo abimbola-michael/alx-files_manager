@@ -47,3 +47,26 @@ queue.process(async (job, done) => {
     done(err);
   }
 });
+
+const userQueue = new Queue('userQueue');
+userQueue.process(async (job, done) => {
+  job.progress(0);
+
+  if (!job.data.userId) {
+    return done(new Error('Missing userId'))
+  }
+
+  const user = await dbClient
+    .client
+    .db()
+    .collection('users')
+    .findOne({ _id: ObjectId(job.data.userId) });
+  if (!user) {
+    return done(new Error('User not found'))
+  }
+
+  job.progress(50);
+  console.log(`Welcome ${user.email}`);
+  job.progress(100);
+  done();
+})
