@@ -23,7 +23,12 @@ describe('test FilesController', () => {
     requester = chai.request(app).keepOpen();
   })
 
-  describe('/files', () => {
+  afterEach(async function () {
+    await dbClient.client.db().collection('files').deleteMany({});
+    await dbClient.client.db().collection('users').deleteMany({});
+    redisClient.client.flushdb();
+  })
+  describe('POST/files', () => {
     beforeEach(async () => {
       await dbClient.client.db().collection('users').insertOne({ email: 'somzzy@gmail.com', password: sha1('somzzy') });
     })
@@ -283,6 +288,248 @@ describe('test FilesController', () => {
               expect(res.body).to.deep.includes({ error: 'Not found' });
               requester.close();
               done();
+            })
+        })
+    })
+  })
+
+  describe('GET/files', async () => {
+    beforeEach(async () => {
+      const user = await dbClient
+        .client
+        .db()
+        .collection('users')
+        .insertOne({ email: 'somzzy@gmail.com', password: sha1('somzzy') });
+      for (let i = 0; i < 40; i++) {
+        const insertFile = await dbClient
+          .client
+          .db()
+          .collection('files')
+          .insertOne({
+            type: 'file', name: `name${i}.txt`, data: 'dGVzdCBjb250ZW50', userId: user.insertedId, parentId: 0, isPublic: true,
+          });
+      }
+    })
+
+    afterEach(async () => {
+      await dbClient.client.db().collection('users').deleteMany({});
+      await dbClient.client.db().collection('files').deleteMany({});
+      redisClient.client.flushdb()
+    })
+
+    it('Get all file by a user paginated', function (done) {
+      requester
+        .get('/connect')
+        .set('Authorization', 'Basic c29tenp5QGdtYWlsLmNvbTpzb216enk=')
+        .end(async (err, res) => {
+          expect(err).to.be.null;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          const token = res.body.token;
+          requester
+            .get('/files')
+            .set('X-Token', token)
+            .end((err, res) => {
+              expect(err).to.be.null;
+              expect(res).to.have.status(200);
+              expect(res.body).to.be.a('Array');
+              expect(res.body).to.have.length(20);
+              requester.close()
+              done();
+            })
+        })
+    })
+  })
+
+  describe('PUT/files/:id/publish', () => {
+    let fileId;
+
+    beforeEach(async () => {
+      const user = await dbClient
+        .client
+        .db()
+        .collection('users')
+        .insertOne({ email: 'somzzy@gmail.com', password: sha1('somzzy') });
+
+      const file = await dbClient
+        .client
+        .db()
+        .collection('files')
+        .insertOne({ isPublic: false, type: 'file', parentId: 0, name: 'name.txt', isPublic: false, userId: user.insertedId })
+      fileId = file.insertedId.toString();
+    })
+
+    afterEach(async () => {
+      await dbClient.client.db().collection('users').deleteMany({});
+      await dbClient.client.db().collection('files').deleteMany({});
+      redisClient.client.flushdb()
+    })
+
+    it('publish a file', function (done) {
+      requester
+        .get('/connect')
+        .set('Authorization', 'Basic c29tenp5QGdtYWlsLmNvbTpzb216enk=')
+        .end(async (err, res) => {
+          expect(err).to.be.null;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          const token = res.body.token;
+
+          requester
+            .put(`/files/${fileId}/publish`)
+            .set('X-Token', token)
+            .end((err, res) => {
+              expect(err).to.be.null;
+              expect(res).to.have.status(200);
+              expect(res.body).to.be.a('object');
+              expect(res.body).to.deep.includes({ isPublic: true });
+              requester.close();
+              done();
+            })
+        })
+    })
+
+    it("publish a file that doesn't exist", function (done) {
+      requester
+        .get('/connect')
+        .set('Authorization', 'Basic c29tenp5QGdtYWlsLmNvbTpzb216enk=')
+        .end(async (err, res) => {
+          expect(err).to.be.null;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          const token = res.body.token;
+
+          requester
+            .put('/files/65f8c0e0d01fa83071776785/publish')
+            .set('X-Token', token)
+            .end((err, res) => {
+              expect(err).to.be.null;
+              expect(res).to.have.status(404);
+              expect(res.body).to.be.a('object');
+              expect(res.body).to.eqls({ error: 'Not found' });
+              requester.close();
+              done();
+            })
+        })
+    })
+  })
+  describe('PUT/files/:id/unpublish', () => {
+    let fileId;
+
+    beforeEach(async () => {
+      const user = await dbClient
+        .client
+        .db()
+        .collection('users')
+        .insertOne({ email: 'somzzy@gmail.com', password: sha1('somzzy') });
+
+      const file = await dbClient
+        .client
+        .db()
+        .collection('files')
+        .insertOne({ isPublic: false, type: 'file', parentId: 0, name: 'name.txt', isPublic: false, userId: user.insertedId })
+      fileId = file.insertedId.toString();
+    })
+
+    afterEach(async () => {
+      await dbClient.client.db().collection('users').deleteMany({});
+      await dbClient.client.db().collection('files').deleteMany({});
+      redisClient.client.flushdb()
+    })
+
+    it('unpublish a file', function (done) {
+      requester
+        .get('/connect')
+        .set('Authorization', 'Basic c29tenp5QGdtYWlsLmNvbTpzb216enk=')
+        .end(async (err, res) => {
+          expect(err).to.be.null;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          const token = res.body.token;
+
+          requester
+            .put(`/files/${fileId}/unpublish`)
+            .set('X-Token', token)
+            .end((err, res) => {
+              expect(err).to.be.null;
+              expect(res).to.have.status(200);
+              expect(res.body).to.be.a('object');
+              expect(res.body).to.deep.includes({ isPublic: false });
+              requester.close();
+              done();
+            })
+        })
+    })
+
+    it("unpublish a file that doesn't exist", function (done) {
+      requester
+        .get('/connect')
+        .set('Authorization', 'Basic c29tenp5QGdtYWlsLmNvbTpzb216enk=')
+        .end(async (err, res) => {
+          expect(err).to.be.null;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          const token = res.body.token;
+
+          requester
+            .put('/files/65f8c0e0d01fa83071776785/publish')
+            .set('X-Token', token)
+            .end((err, res) => {
+              expect(err).to.be.null;
+              expect(res).to.have.status(404);
+              expect(res.body).to.be.a('object');
+              expect(res.body).to.eqls({ error: 'Not found' });
+              requester.close();
+              done();
+            })
+        })
+    })
+  })
+
+  describe('GET/files/:id/data', () => {
+    beforeEach(async () => {
+      await dbClient
+        .client
+        .db()
+        .collection('users')
+        .insertOne({ email: 'somzzy@gmail.com', password: sha1('somzzy') });
+    })
+
+    afterEach(async () => {
+      await dbClient.client.db().collection('users').deleteMany({});
+      await dbClient.client.db().collection('files').deleteMany({});
+      redisClient.client.flushdb()
+    })
+    it('Get a private file', function (done) {
+      requester
+        .get('/connect')
+        .set('Authorization', 'Basic c29tenp5QGdtYWlsLmNvbTpzb216enk=')
+        .end((err, res) => {
+          expect(err).to.be.null;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          const token = res.body.token;
+
+          requester
+            .post('/files')
+            .set('X-Token', token)
+            .send({ name: 'test.txt', type: 'file', data: 'SGVsbG8gVGVzdCEgKCpfKik=', isPublic: false })
+            .end((err, res) => {
+              expect(err).to.be.null;
+              expect(res).to.have.status(201);
+              expect(res.body).to.be.a('object');
+              const fileId = res.body.id;
+
+              requester
+                .get(`/files/${fileId}/data`)
+                .set('X-Token', token)
+                .end((err, res) => {
+                  expect(err).to.be.null;
+                  expect(res).to.have.status(200);
+                  expect(res).to.have.header('Content-Type', /text\/plain/);
+                  requester.close();
+                  done();
+                })
             })
         })
     })
